@@ -36,8 +36,8 @@ bool debugVerbose = false;
 #include <gdew075T7.h>
 #include <gdew027w3.h> // -> Needs to be changed to your model
 EpdSpi io;             //    Configure the GPIOs using: idf.py menuconfig   -> section "Display configuration"
-Gdew027w3 display(io); // -> Needs to match your epaper
-//Gdew075T7 display(io);
+//Gdew027w3 display(io); // -> Needs to match your epaper
+Gdew075T7 display(io);
 // HTTP Request constants. Update Europe/Berlin with your timezone v
 // Time query: HHmm  -> 0800 (8 AM)
 const char* timeQuery = "http://fs.fasani.de/api/?q=date&timezone=Europe/Berlin&f=Hi";
@@ -50,9 +50,9 @@ int sleepMinutes = 5;
 // At what time your CLOCK will get in Sync with the internet time?
 // Clock syncs with internet time in this two SyncHours. Leave it on 0 to avoid internet Sync (Leave at least one set otherwise it will never get synchronized)
 // At this hour in the morning the clock will Sync with internet time
-uint8_t syncHour1 = 0;     // IMPORTANT: Leave it on 0 for the first run!
+uint8_t syncHour1 = 7;     // IMPORTANT: Leave it on 0 for the first run!
 uint8_t syncHour2 = 13;    // Same here, 2nd request to Sync hour 
-uint8_t syncHourDate = 0; // The date request will be done at this hour, only once a day
+uint8_t syncHourDate = 6; // The date request will be done at this hour, only once a day
 /*
  CLOCK Appearance - - - - - - - - - -
        
@@ -61,13 +61,15 @@ uint8_t syncHourDate = 0; // The date request will be done at this hour, only on
 uint16_t backgroundColor = EPD_WHITE;
 uint16_t textColor = EPD_BLACK;
 // Adafruit GFX Font selection - - - - - -
-#include <Fonts/ubuntu/Ubuntu_M16pt8b.h> // Day, Month
-#include <Fonts/ubuntu/Ubuntu_M8pt8b.h>  // Last Sync message - Still not fully implemented
+//#include <Fonts/ubuntu/Ubuntu_M16pt8b.h> // Day, Month
+//#include <Fonts/ubuntu/Ubuntu_M8pt8b.h>  // Last Sync message - Still not fully implemented
 // Main digital clock hour font:
-#include <Fonts/ubuntu/Ubuntu_M24pt8b.h> // HH:mm
-#include <Fonts/ubuntu/Ubuntu_M48pt8b.h> // HH:mm bigger in 48pt -> default selection
+//#include <Fonts/ubuntu/Ubuntu_M24pt8b.h> // HH:mm
+//#include <Fonts/ubuntu/Ubuntu_M48pt8b.h> // HH:mm bigger in 48pt -> default selection
+#include <Fonts/digital_ds100pt8b.h>
+#include <Fonts/digital_ds80pt8b.h>
 // HH:MM font size - Select between 24 and 48. It should match the previously defined fonts size
-uint8_t fontSize = 48;
+uint8_t fontSize = 100;
 
 // HTTP_EVENT_ON_DATA callback needs to know what information is going to parse. 
 // - - - - - - - - On 1: time  2: day, month
@@ -109,31 +111,34 @@ void updateClock() {
    display.init(false);
    display.fillScreen(backgroundColor);
    display.setRotation(CONFIG_DISPLAY_ROTATION); // Set this in "Cale configuration" -> idf.py menuconfig
-   display.setFont(&Ubuntu_M16pt8b);
+   //display.setFont(&Ubuntu_M16pt8b);
+   display.setFont(&digital_ds80pt8b);
    display.setTextColor(textColor);
-   display.setCursor(40,30);
+   display.setCursor(40,10);
    
    if (debugVerbose) {
     printf("updateClock() called\n");
     printf("display.print() Day, month: %s\n\n", nvs_day_month);
     }
     // Day 01, Month  cursor location x,y
-    display.setCursor(40, 30);
+    display.setCursor(10, 100);
     display.print(nvs_day_month);
 
    /**
-    * setCursor and font depending on selected fontSize
+    * setCursor and font depending on selected fontSize HH:mm
     */
    switch (fontSize)
    {
        /* Bigger font */
-   case 48:
-       display.setCursor(24,110);
-       display.setFont(&Ubuntu_M48pt8b);
+   case 100:
+       display.setCursor(display.width()/2-(fontSpace*4),290);
+       //display.setFont(&Ubuntu_M48pt8b);
+       display.setFont(&digital_ds100pt7b);
        break;
    case 24:
        display.setCursor(90,80);
-       display.setFont(&Ubuntu_M24pt8b);
+       //display.setFont(&Ubuntu_M24pt8b);
+       display.setFont(&digital_ds80pt8b);
        break;
    default:
        ESP_LOGE(TAG, "fontSize selection: %d is not defined. Please select 24 or 48 or define new fonts", fontSize);
@@ -171,9 +176,9 @@ void updateClock() {
    display.print(minuteBuffer);
 
    // Show last update message
-   display.setFont(&Ubuntu_M8pt8b);
+   /* display.setFont(&Ubuntu_M8pt8b);
    display.setCursor(10,display.height()-20);
-   display.print(nvs_last_sync_message);
+   display.print(nvs_last_sync_message); */
    // Partial update box calculation
     uint16_t x = 0;
     uint16_t y = 0;
@@ -187,8 +192,8 @@ void updateClock() {
    case 1:
        printf("HH:MM updateWindow(%d, %d, %d, %d)\n",x,y,w,h);
        
-       display.updateWindow(x, y, w, h, true);
-       //display.update(); // If updateWindow does not work good for your display model use this and comment the other
+       //display.updateWindow(x, y, w, h, true);
+       display.update(); // If updateWindow does not work good for your display model use this and comment the other
        // Let's do a faster refresh using awesome updateWindow method (Thanks Jean-Marc for awesome example in GxEPD)
        // Note this x,y,width,height coordinates represent the bounding box where the update takes place:
        break;
@@ -424,7 +429,7 @@ void wifi_init_sta(void)
 void app_main(void)
 {
    printf("ESP32 deepsleep clock\n");
-
+    printf("Free heap memo: %d\n", xPortGetFreeHeapSize());
    // Initialize NVS
     esp_err_t err = nvs_flash_init();
     if (err == ESP_ERR_NVS_NO_FREE_PAGES || err == ESP_ERR_NVS_NEW_VERSION_FOUND) {
