@@ -50,9 +50,11 @@ int sleepMinutes = 5;
 // At what time your CLOCK will get in Sync with the internet time?
 // Clock syncs with internet time in this two SyncHours. Leave it on 0 to avoid internet Sync (Leave at least one set otherwise it will never get synchronized)
 // At this hour in the morning the clock will Sync with internet time
-uint8_t syncHour1 = 7;     // IMPORTANT: Leave it on 0 for the first run!
-uint8_t syncHour2 = 13;    // Same here, 2nd request to Sync hour 
+uint8_t syncHour1 = 0;     // IMPORTANT: Leave it on 0 for the first run!
+uint8_t syncHour2 = 23;    // Same here, 2nd request to Sync hour 
 uint8_t syncHourDate = 6; // The date request will be done at this hour, only once a day
+
+uint32_t millisCorrection = 0;
 /*
  CLOCK Appearance - - - - - - - - - -
        
@@ -101,7 +103,7 @@ extern "C"
 }
 
 void deepsleep(){
-    esp_deep_sleep(1000000LL * 60 * sleepMinutes);
+    esp_deep_sleep(1000000LL * 60 * sleepMinutes - millisCorrection);
 }
 
 void updateClock() {
@@ -428,7 +430,9 @@ void wifi_init_sta(void)
 
 void app_main(void)
 {
-   printf("ESP32 deepsleep clock\n");
+    uint64_t startTime = esp_timer_get_time();
+
+    printf("ESP32 deepsleep clock\n");
     printf("Free heap memo: %d\n", xPortGetFreeHeapSize());
    // Initialize NVS
     esp_err_t err = nvs_flash_init();
@@ -458,8 +462,8 @@ void app_main(void)
          // If the hour that comes from nvs matches one of the two syncHour's then syncronize with the www. Only if it was not already done!
          printf("LAST Sync hour: %d nvs_hour: %d nvs_minute: %d\nnvs_last_sync_date: %d Last Sync message: %s\n\n", nvs_last_sync_hour, nvs_hour, nvs_minute, nvs_last_sync_date, nvs_last_sync_message);
 
-
-         if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour || (nvs_hour==0 && nvs_last_sync_hour==0))) {
+       // || (nvs_hour==0 && nvs_last_sync_hour==0)  
+         if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour) ) {
             wifi_init_sta();
             uint8_t waitRounds = 0;
             while (espIsOnline==false && waitRounds<30) {
@@ -549,8 +553,12 @@ void app_main(void)
         nvs_close(my_handle);
     }
 
-   // TODO: Get initial time from internet 
+   // Add correction suggested by Carlos
+   uint32_t endTime = esp_timer_get_time();
+   //printf("now  :%llu\nstart:%llu\n",endTime,startTime);
+   millisCorrection = endTime-startTime;
 
-   printf("deepsleep for %d minutes\n", sleepMinutes);
+   printf("deepsleep for %d minutes. millisCorrection: %d\n", sleepMinutes, millisCorrection);
+
    deepsleep();
 }
