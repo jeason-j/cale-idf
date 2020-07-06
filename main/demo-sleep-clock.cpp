@@ -54,11 +54,12 @@ int sleepMinutes = 5;
 // At what time your CLOCK will get in Sync with the internet time?
 // Clock syncs with internet time in this two SyncHours. Leave it on 0 to avoid internet Sync (Leave at least one set otherwise it will never get synchronized)
 // At this hour in the morning the clock will Sync with internet time
-uint8_t syncHour1 = 8;     // IMPORTANT: Leave it on 0 for the first run!
-uint8_t syncHour2 = 23;    // Same here, 2nd request to Sync hour 
+uint8_t syncHour1 = 0;     // IMPORTANT: Leave it on 0 for the first run!
+uint8_t syncHour2 = 1;    // Same here, 2nd request to Sync hour 
 uint8_t syncHourDate = 7; // The date request will be done at this hour, only once a day
 
-uint32_t millisCorrection = 0;
+uint32_t microsCorrection = 0;
+uint32_t microsBootPrediction = 100000;
 /*
  CLOCK Appearance - - - - - - - - - -
        
@@ -73,7 +74,7 @@ uint16_t textColor = EPD_BLACK;
 //#include <Fonts/ubuntu/Ubuntu_M24pt8b.h> // HH:mm
 //#include <Fonts/ubuntu/Ubuntu_M48pt8b.h> // HH:mm bigger in 48pt -> default selection
 #include <Fonts/digital_ds100pt8b.h>
-#include <Fonts/digital_ds80pt8b.h>
+#include <Fonts/digital_ds80pt7b.h>
 // HH:MM font size - Select between 24 and 48. It should match the previously defined fonts size
 uint8_t fontSize = 100;
 
@@ -107,7 +108,7 @@ extern "C"
 }
 
 void deepsleep(){
-    esp_deep_sleep(1000000LL * 60 * sleepMinutes - millisCorrection);
+    esp_deep_sleep(1000000LL * 60 * sleepMinutes - microsCorrection + microsBootPrediction);
 }
 
 void updateClock() {
@@ -117,8 +118,8 @@ void updateClock() {
    display.init(false);
    display.fillScreen(backgroundColor);
    display.setRotation(CONFIG_DISPLAY_ROTATION); // Set this in "Cale configuration" -> idf.py menuconfig
-   //display.setFont(&Ubuntu_M16pt8b);
-   display.setFont(&digital_ds80pt8b);
+ 
+   display.setFont(&digital_ds80pt7b);
    display.setTextColor(textColor);
    display.setCursor(40,10);
    
@@ -144,7 +145,7 @@ void updateClock() {
    case 24:
        display.setCursor(90,80);
        //display.setFont(&Ubuntu_M24pt8b);
-       display.setFont(&digital_ds80pt8b);
+       display.setFont(&digital_ds80pt7b);
        break;
    default:
        ESP_LOGE(TAG, "fontSize selection: %d is not defined. Please select 24 or 48 or define new fonts", fontSize);
@@ -472,6 +473,7 @@ void app_main(void)
 
        // || (nvs_hour==0 && nvs_last_sync_hour==0)  
          if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour) ) {
+             //if (true){
             wifi_init_sta();
             uint8_t waitRounds = 0;
             while (espIsOnline==false && waitRounds<30) {
@@ -564,9 +566,9 @@ void app_main(void)
    // Add correction suggested by Carlos
    uint32_t endTime = esp_timer_get_time();
    //printf("now  :%llu\nstart:%llu\n",endTime,startTime);
-   millisCorrection = endTime-startTime;
+   microsCorrection = endTime-startTime;
 
-   printf("deepsleep for %d minutes. millisCorrection: %d\n", sleepMinutes, millisCorrection);
+   printf("deepsleep for %d minutes. microsCorrection: %d\n", sleepMinutes, microsCorrection);
 
    deepsleep();
 }
