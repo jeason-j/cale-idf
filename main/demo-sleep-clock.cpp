@@ -30,11 +30,15 @@
 #include "esp_tls.h"
 #include "esp_http_client.h"
 #include "esp_sleep.h"
+// TinyPICO Dotstar
+	#define DOTSTAR_PWR 13
+	#define DOTSTAR_DATA 2
+	#define DOTSTAR_CLK 12
 
 bool debugVerbose = false;
 // Important configuration. The class should match your epaper display model:
 #include <gdew075T7.h>
-#include <gdew027w3.h> // -> Needs to be changed to your model
+//#include <gdew027w3.h> // -> Needs to be changed to your model
 EpdSpi io;             //    Configure the GPIOs using: idf.py menuconfig   -> section "Display configuration"
 //Gdew027w3 display(io); // -> Needs to match your epaper
 Gdew075T7 display(io);
@@ -50,9 +54,9 @@ int sleepMinutes = 5;
 // At what time your CLOCK will get in Sync with the internet time?
 // Clock syncs with internet time in this two SyncHours. Leave it on 0 to avoid internet Sync (Leave at least one set otherwise it will never get synchronized)
 // At this hour in the morning the clock will Sync with internet time
-uint8_t syncHour1 = 0;     // IMPORTANT: Leave it on 0 for the first run!
+uint8_t syncHour1 = 8;     // IMPORTANT: Leave it on 0 for the first run!
 uint8_t syncHour2 = 23;    // Same here, 2nd request to Sync hour 
-uint8_t syncHourDate = 6; // The date request will be done at this hour, only once a day
+uint8_t syncHourDate = 7; // The date request will be done at this hour, only once a day
 
 uint32_t millisCorrection = 0;
 /*
@@ -431,6 +435,10 @@ void wifi_init_sta(void)
 void app_main(void)
 {
     uint64_t startTime = esp_timer_get_time();
+    // Turn off neopixel
+    gpio_set_direction((gpio_num_t)DOTSTAR_PWR, GPIO_MODE_OUTPUT);
+    gpio_set_pull_mode((gpio_num_t)DOTSTAR_CLK, GPIO_PULLDOWN_ONLY);
+    gpio_set_pull_mode((gpio_num_t)DOTSTAR_DATA, GPIO_PULLDOWN_ONLY);
 
     printf("ESP32 deepsleep clock\n");
     printf("Free heap memo: %d\n", xPortGetFreeHeapSize());
@@ -492,7 +500,7 @@ void app_main(void)
          }
 
          // To avoid repeating the call :  && nvs_hour != nvs_last_sync_date
-         if (nvs_hour == syncHourDate && (nvs_hour != nvs_last_sync_date || (nvs_hour==0 && nvs_last_sync_hour==0))) {
+         if (nvs_hour == syncHourDate && (nvs_hour != nvs_last_sync_date)) {
              // Tell ON_DATA to read date:
              onDataCheck = 2; 
             nvs_set_i8(my_handle, "last_sync_date", nvs_hour);
