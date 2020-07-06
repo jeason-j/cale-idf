@@ -35,7 +35,7 @@
 	#define DOTSTAR_DATA 2
 	#define DOTSTAR_CLK 12
 
-bool debugVerbose = false;
+bool debugVerbose = true;
 // Important configuration. The class should match your epaper display model:
 #include <gdew075T7.h>
 //#include <gdew027w3.h> // -> Needs to be changed to your model
@@ -108,7 +108,7 @@ extern "C"
 }
 
 void deepsleep(){
-    esp_deep_sleep(1000000LL * 60 * sleepMinutes - microsCorrection + microsBootPrediction);
+    esp_deep_sleep(1000000LL * 60 * sleepMinutes - microsCorrection + microsBootPrediction); // + microsBootPrediction
 }
 
 void updateClock() {
@@ -440,6 +440,7 @@ void app_main(void)
     gpio_set_direction((gpio_num_t)DOTSTAR_PWR, GPIO_MODE_OUTPUT);
     gpio_set_pull_mode((gpio_num_t)DOTSTAR_CLK, GPIO_PULLDOWN_ONLY);
     gpio_set_pull_mode((gpio_num_t)DOTSTAR_DATA, GPIO_PULLDOWN_ONLY);
+    gpio_set_level((gpio_num_t)DOTSTAR_PWR, 0);
 
     printf("ESP32 deepsleep clock\n");
     printf("Free heap memo: %d\n", xPortGetFreeHeapSize());
@@ -471,9 +472,9 @@ void app_main(void)
          // If the hour that comes from nvs matches one of the two syncHour's then syncronize with the www. Only if it was not already done!
          printf("LAST Sync hour: %d nvs_hour: %d nvs_minute: %d\nnvs_last_sync_date: %d Last Sync message: %s\n\n", nvs_last_sync_hour, nvs_hour, nvs_minute, nvs_last_sync_date, nvs_last_sync_message);
 
-       // || (nvs_hour==0 && nvs_last_sync_hour==0)  
+       // Sync hour with internet time only when
          if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour) ) {
-             //if (true){
+            //if (true){
             wifi_init_sta();
             uint8_t waitRounds = 0;
             while (espIsOnline==false && waitRounds<30) {
