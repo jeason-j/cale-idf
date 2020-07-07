@@ -251,13 +251,13 @@ esp_err_t _http_event_handler(esp_http_client_event_t *evt)
         {
         /* Retrieve time */
         case 1:
-            // Hour output_buffer[0] and output_buffer[1]
-            char hour[1];
+            // Hour output_buffer[0] and output_buffer[1]. Both need null terminator in order for atoi to work correctly
+            char hour[2];
             hour[0] = output_buffer[0];
             hour[1] = output_buffer[1];
+            hour[2] = '\0';
             nvs_hour = atoi(hour);
             
-            // min needs null terminator
             char min[2];
             min[0] = output_buffer[2];
             min[1] = output_buffer[3];
@@ -473,8 +473,8 @@ void app_main(void)
          printf("LAST Sync hour: %d nvs_hour: %d nvs_minute: %d\nnvs_last_sync_date: %d Last Sync message: %s\n\n", nvs_last_sync_hour, nvs_hour, nvs_minute, nvs_last_sync_date, nvs_last_sync_message);
 
        // Sync hour with internet time only when
-         if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour) ) {
-            //if (true){
+        if ((nvs_hour == syncHour1 || nvs_hour == syncHour2) && (nvs_hour != nvs_last_sync_hour) ) { 
+            //if (true){ // Force update
             wifi_init_sta();
             uint8_t waitRounds = 0;
             while (espIsOnline==false && waitRounds<30) {
