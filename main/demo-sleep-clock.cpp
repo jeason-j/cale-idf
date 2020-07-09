@@ -55,11 +55,11 @@ int sleepMinutes = 5;
 // Clock syncs with internet time in this two SyncHours. Leave it on 0 to avoid internet Sync (Leave at least one set otherwise it will never get synchronized)
 // At this hour in the morning the clock will Sync with internet time
 uint8_t syncHour1 = 0;     // IMPORTANT: Leave it on 0 for the first run!
-uint8_t syncHour2 = 1;    // Same here, 2nd request to Sync hour 
-uint8_t syncHourDate = 7; // The date request will be done at this hour, only once a day
+uint8_t syncHour2 = 13;    // Same here, 2nd request to Sync hour 
+uint8_t syncHourDate = 12; // The date request will be done at this hour, only once a day
 
 uint32_t microsCorrection = 0;
-uint32_t microsBootPrediction = 100000;
+uint32_t microsBootPrediction = 300000; // With 100K was 5 minutes ahead after 10 hrs
 /*
  CLOCK Appearance - - - - - - - - - -
        
@@ -485,10 +485,11 @@ void app_main(void)
             http_get(timeQuery);
             // Mark a flag that the internet time was refreshed that is active for the rest of this hour
             nvs_set_i8(my_handle, "last_sync_h", nvs_hour);
+            printf("NVS last_sync_h: %d\n", nvs_hour);
             // Save message to store time of last update
-            char lastSync[22];
-            char hour[2];
-            char min[2];
+            char lastSync[30];
+            char hour[3];
+            char min[3];
             itoa(nvs_hour, hour, 10);
             itoa(nvs_minute, min, 10);
             strlcpy(lastSync,  "Last sync at ", sizeof(lastSync));
@@ -502,7 +503,7 @@ void app_main(void)
             printf("LAST SYNC: %s\n", lastSync);
          }
 
-         // To avoid repeating the call :  && nvs_hour != nvs_last_sync_date
+         //  Avoid repeating the call: 
          if (nvs_hour == syncHourDate && (nvs_hour != nvs_last_sync_date)) {
              // Tell ON_DATA to read date:
              onDataCheck = 2; 
@@ -537,6 +538,10 @@ void app_main(void)
            int8_t sumExtraMinutes = nvs_minute-60;
            nvs_hour++;
            nvs_minute = 0;
+           // Reset flags 
+           nvs_set_i8(my_handle, "last_sync_date", -1);
+           nvs_set_i8(my_handle, "last_sync_h", -1);
+
            if (sumExtraMinutes>0) {
               nvs_minute+=sumExtraMinutes;
               printf("Summing %d minutes to new hour since last_minute+%d is equal to %d.\n", sumExtraMinutes, sleepMinutes, nvs_minute);
