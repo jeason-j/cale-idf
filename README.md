@@ -24,7 +24,20 @@ And of course wakes up after this deepsleep and goes back to point 1 making it a
     2020-Sep Optimmizing instantiation and configuration
     2020-Aug Adding color epapers
     2020-Jul Added PlasticLogic as a new brand with 4 wire SPI (uses MISO)
-    
+
+## Fork policy
+
+**Please do not Fork this repository to bookmark it**. For that use the ★ Star button. Acceptable forks fall in this three categories:
+
+1. You found a bug and want to suggest a merge request. Then Fork it!
+2. You will contribute adding a new epaper model that does exist.
+3. You will use Cale-idf as a base to create something new. But in that case it would be better to fork the components. 
+
+All other users that fork this without falling in this categories and without any kind of advice to us will be blocked and will not be able to interact with the further Cale releases. Forking is not bookmarking!
+
+We don't like having copies of this without any reason. It is just a bad practice, makes things confusing, and makes absolutely no sense. 
+If you did this without falling in any of this 3 categories, please delete the fork, in order to be unblocked and have further access to my repositories.
+
 ## News
 
 - Use **refactor/oop** to try the latest features. Only after days or even weeks of testing, it will be merged in master, and eventually land in a new [CalEPD epaper component release](https://github.com/martinberlin/CalEPD)
